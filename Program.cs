@@ -32,7 +32,90 @@ namespace play_itextsharp
     class Program
     {
 
-        static void Main(string[] args)
+        static void  ExamplePDFStamper()
+        {
+            //***************************************
+            // SUMMARY_SHEET  612x792 pixels
+            // using PDFStamper
+            //***************************************
+            Dictionary<string, string> Request = new Dictionary<string, string>(); 
+            string timesFontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "TIMES.TTF");
+            BaseFont TimesRomanFont = BaseFont.CreateFont(timesFontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            Font TimRom_Font = new Font(TimesRomanFont, 12, Font.NORMAL, BaseColor.BLACK);
+
+            string summary_template = "\\template\\Contract_Mods\\SUMMARY_SHEET.pdf";
+
+            //copy the source template file
+            string summary_copy = "\\copy_summary_temp.pdf";
+            FileInfo summary_fi = new FileInfo(summary_template);
+            summary_fi.CreationTime = DateTime.Now;
+            summary_fi.CopyTo(summary_copy);
+
+            //check make sure o.s. copied the file
+            FileInfo summary_dest_fi = new FileInfo(summary_copy);
+            if (summary_dest_fi.Exists == false)
+            {
+                throw new Exception("failed to copy file");
+            }
+            PdfReader summary_rdr = new PdfReader(summary_copy);
+            iTextSharp.text.Rectangle summary_rr = summary_rdr.GetPageSizeWithRotation(1); //summary_rr contains width and Height
+            string summary_final_pdf = "\\FINAL_summary.pdf";
+            FileStream summary_fs = new FileStream(summary_final_pdf, FileMode.Create);
+            PdfStamper summary_stamper = new PdfStamper(summary_rdr, summary_fs);
+            PdfContentByte summary_cb = summary_stamper.GetOverContent(1);
+
+            summary_cb.BeginText();
+            summary_cb.SetFontAndSize(TimesRomanFont, 10);
+            summary_cb.ShowTextAligned(PdfContentByte.ALIGN_LEFT, Request["asolog1"] + "-" + Request["asolog2"], 222.0f, 642.0f, 0);                                  //ASO Log Number
+            summary_cb.ShowTextAligned(PdfContentByte.ALIGN_LEFT, Request["mod_num"], 222.0f, 622.0f, 0);                                                             //MODIFICATION ORDER NO.
+            summary_cb.ShowTextAligned(PdfContentByte.ALIGN_LEFT, Request["contractor_provider_name"], 222.0f, 603.0f, 0);                                            //Contractor/Provider
+            summary_cb.ShowTextAligned(PdfContentByte.ALIGN_LEFT, Request["initial_term_start_date"] + " - " + Request["initial_term_end_date"], 222.0f, 582.0f, 0);  //Initial Term of Contract
+            summary_cb.ShowTextAligned(PdfContentByte.ALIGN_LEFT, Request["extension_terms"], 222.0f, 562.0f, 0);                                                     //Extension Term(s)
+            summary_cb.ShowTextAligned(PdfContentByte.ALIGN_LEFT, Request["funding_source"], 222.0f, 542.0f, 0);                                                      //Source of Funding
+            summary_cb.ShowTextAligned(PdfContentByte.ALIGN_LEFT, Request["procurement_method"], 222.0f, 522.0f, 0);                                                  //Procurement Method
+            summary_cb.ShowTextAligned(PdfContentByte.ALIGN_LEFT, Request["geographic_area"], 222.0f, 502.0f, 0);                                                     //Geographic Area
+            summary_cb.ShowTextAligned(PdfContentByte.ALIGN_LEFT, Request["services_provided"], 222.0f, 482.0f, 0);                                                   //Services Provided
+            summary_cb.ShowTextAligned(PdfContentByte.ALIGN_LEFT, Request["remarks"], 222.0f, 427.0f, 0);                                                             //Remarks
+            summary_cb.EndText();
+            summary_stamper.Close();
+            summary_rdr.Close();
+            summary_fs.Close();
+        }
+
+        static void  ExampleDirectWriting()
+        {
+            string timesFontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "TIMES.TTF");
+            BaseFont TimesRomanFont = BaseFont.CreateFont(timesFontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            Font TimRom_Font = new Font(TimesRomanFont, 12, Font.NORMAL, BaseColor.BLACK);
+
+            string dummy_path = "\\dummy.pdf";
+            Rectangle dummy_rect = new Rectangle(612, 792);
+            Document dummy_doc = new Document(dummy_rect);
+            PdfWriter.GetInstance(dummy_doc, new FileStream(dummy_path, FileMode.Create));
+            dummy_doc.Open();
+            Paragraph dummy_paragraph = new Paragraph();
+            dummy_paragraph.Add(new Chunk("MY DUMMY TEST\n", TimRom_Font));
+            iTextSharp.text.List first_list = new List(true, true);
+            first_list.Lowercase = true;
+            first_list.Add(new ListItem("apple", TimRom_Font));
+            first_list.Add(new ListItem("should be second list now", TimRom_Font));
+
+            iTextSharp.text.List second_list = new List(true, true);
+            second_list.Lowercase = true;
+            second_list.Add(new ListItem("car", TimRom_Font));
+            second_list.Add(new ListItem("truck", TimRom_Font));
+            second_list.Add(new ListItem("airplane", TimRom_Font));
+
+            first_list.Add(second_list);
+            first_list.Add(new ListItem("pear", TimRom_Font));
+            first_list.Add(new ListItem("strawberry", TimRom_Font));
+
+            dummy_paragraph.Add(first_list);
+            dummy_doc.Add(dummy_paragraph);
+            dummy_doc.Close();
+        }
+
+        static void Example_NicEditWidget_HTML_Repair()
         {
             Dictionary<string, string> Request = new Dictionary<string, string>(); 
             string timesFontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "TIMES.TTF");
@@ -269,6 +352,78 @@ namespace play_itextsharp
 
             attach_doc.Add(main_list);
             attach_doc.Close();
+        }//Example_NicEditWidget_HTML_Repair
+
+        static void Example_Merge_PDFs()
+        {
+            //******** MERGE PDF FILES *************************************************
+            //see pdfUtils.cs - StampPageNumber for example of stamping page numbers
+            //For now let us save this for a little later, we gotta move on
+            //**************************************************************************
+            List<string> fileList = new List<string>();
+            //fileList.Add(copy_pdf_template);
+            //fileList.Add(summary_copy);
+            //fileList.Add(conack_copy);
+            //fileList.Add(provack_copy);
+            //fileList.Add(attach_pdf);
+
+            string mergedFile = String.Empty;
+            int totalPages = 0;
+            if (fileList.Count > 0)
+            {
+                mergedFile = "\\FINAL_merged.pdf";
+
+                iTextSharp.text.Document document = new iTextSharp.text.Document();
+
+                using (FileStream copystream = new FileStream(mergedFile, FileMode.Create))
+                {
+                    try
+                    {
+                        PdfCopy copy = new PdfCopy(document, copystream);
+
+                        document.Open();
+                        PdfReader reader;
+
+                        int docPages;
+
+                        // loop over the documents you want to concatenate
+                        for (int curFile = 0; curFile < fileList.Count; curFile++)
+                        {
+                            if (File.Exists(fileList[curFile]))
+                            {
+                                reader = new PdfReader(fileList[curFile]);
+
+                                // loop over the pages in that document
+                                docPages = reader.NumberOfPages;
+                                totalPages += docPages;
+
+                                for (int pageNum = 1; pageNum <= docPages; pageNum++)
+                                {
+                                    copy.AddPage(copy.GetImportedPage(reader, pageNum));
+                                }
+
+                                reader.Close();
+                                copy.FreeReader(reader);
+                            }
+
+                        }
+
+                        document.Close();
+                        copystream.Close();
+
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex;
+                    }
+                }
+            }
+        }//Example_Merge_PDFs
+
+
+        static void Main(string[] args)
+        {
+
         }
-    }
-}
+    }//class
+}//namespace
